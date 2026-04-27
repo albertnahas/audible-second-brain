@@ -1,9 +1,15 @@
 """Score Audible library and wishlist items.
 
-This is the **starter** rubric shipped by `bootstrap`. It is intentionally
-generic — the author/anti-pattern lists below are mostly empty and the cluster
-weights are rough defaults. Run `/audible-second-brain:calibrate` to replace
-these values with evidence derived from your own completion data.
+This is the **starter** rubric shipped by `bootstrap`. The personalization sets
+(HIGH_TRUST, ANTI_PATTERNS, EXPLICIT_PASS, etc.) are intentionally empty — run
+`/audible-second-brain:calibrate` to populate them from your own completion data.
+
+Cluster routing is two-tier:
+  1. If `classifications.json` exists (written by `_classify.py`), use the
+     LLM-derived cluster for that book — no regex needed.
+  2. Otherwise, fall back to keyword + genre regex (CLUSTER_RULES below). The
+     fallback is intentionally conservative — it produces fewer matches but
+     they are higher-precision.
 
 Reads canonical CLI exports (library.json / wishlist.json from `audible library
 export` / `audible wishlist export`). Normalizes the audible-cli schema back into
@@ -76,42 +82,68 @@ def normalize(b, source):
 
 
 # ---------------------------------------------------------------------------
-# Personalized lists — populated by `/audible-second-brain:calibrate` from your
-# own completion data. Empty on a fresh install: the scorer falls back entirely
-# to clusters, length, and anti-patterns until calibration runs.
+# Personalization sets — populated by `/audible-second-brain:calibrate` from
+# your own completion data. Empty on a fresh install.
 # ---------------------------------------------------------------------------
 
-HIGH_TRUST: set[str] = set()      # ≥ 2 finished AND completion ratio ≥ 0.6
-SCHOOL_AUTHORS: set[str] = set()  # warm authors near a HIGH_TRUST cluster
+HIGH_TRUST: set[str] = set()           # ≥ 2 finished AND completion ratio ≥ 0.6
+SCHOOL_AUTHORS: set[str] = set()       # warm authors near a HIGH_TRUST cluster
 UNTOUCHED_MAGNUM: dict[str, str] = {}  # author -> reason (e.g. "Principles unread")
 
-EXPLICIT_PASS: set[str] = set()   # titles you explicitly never want resurfaced
-PROMOTE_LIBRARY: set[str] = set() # library titles you want surfaced as KEEP regardless of score
-PROMOTE_WISHLIST: set[str] = set() # wishlist titles you want surfaced as KEEP regardless of score
+EXPLICIT_PASS: set[str] = set()        # titles you never want resurfaced
+PROMOTE_LIBRARY: set[str] = set()      # library titles you want surfaced as KEEP
+PROMOTE_WISHLIST: set[str] = set()     # wishlist titles you want surfaced as KEEP
+
+ANTI_PATTERNS: list[tuple[str, int, str]] = []  # (regex, score_delta, reason)
 
 INSTITUTIONAL_AUTHORS: set[str] = {
     'Harvard Business Review', 'AudioLearn', 'BBC Studios',
     'SXSW Studios', 'Innovative Language Learning',
 }
 
-# Genre + keyword routing. These regexes match against
-# title + author + description + genres (joined, case-insensitive).
-# Order matters: first match wins.
-CLUSTER_RULES = [
-    ('software_craft', r'\b(software|engineer|architect|coding|kubernetes|devops|platform|microservice|continuous|staff engineer|tech lead|programmer|designing|clean code|scalab|tidy|refactor|team topolog|flow engineer|accelerate|computers? & technology|computer science)\b', +2),
-    ('trauma', r'\b(trauma|nervous system|somatic|polyvagal|body keeps|vagus|cptsd|self-compassion|grief|psychotherapy|stress management|post-traumatic stress disorder|anxiety disorders|emotional & mental health)\b', +2),
-    ('habits', r'\b(habit|productivity|focus|discipline|atomic|compound|deep work|mindset|routine|self-control|ultralearn|motivation & self-improvement|personal success|career success|self-development)\b', +2),
-    ('power', r'\b(power|influence|persuasion|negotiat|seduction|strategy|leverage|machiavelli|laws of|fascinate|culture map|culture code|management & leadership|business development & entrepreneurship)\b', +2),
-    ('ai_socio', r'\b(artificial intelligence|machine learning|chatgpt|llm|alignment|empire of|singularity|superintelligen|co-intelligence|nexus|ai con|ai valley|thinking machine|human compatible)\b', +1),
-    ('cognition', r'\b(thinking|cognition|decision|bias|heuristic|judgment|rational|behavioral|nudge|elephant in the brain|decision-making & problem solving|social psychology|psychology & mental health|psychology)\b', +1),
-    ('evolution', r'\b(evolution|gene|biolog|sapiens|homo|primal|hunter-gather|natural selection|brain|biological sciences|anthropology)\b', 0),
-    ('spirituality', r'\b(meditation|spiritual|enlighten|consciousness|ego|presence|awakening|buddhi|zen|mindful|psychedelic|religion & spirituality)\b', 0),
-    ('investing', r'\b(invest|finance|portfolio|market|wealth|money|stock|bond|economy|trading|broke|money & finance|economics)\b', 0),
-]
 
-# Anti-patterns: title or author regexes that hard-penalize.
-# `calibrate` adds entries here based on "owned ≥ 3, finished 0" patterns.
-ANTI_PATTERNS: list[tuple[str, int, str]] = []
+# ---------------------------------------------------------------------------
+# Cluster taxonomy (see _classify.py).
+# ---------------------------------------------------------------------------
+
+CLUSTER_VALUES = {
+    'software_engineering': +1,
+    'ai_society': +1,
+    'cognition': +1,
+    'psychology_health': +1,
+    'habits_productivity': +1,
+    'leadership_influence': +1,
+    'economics_finance': 0,
+    'philosophy_spirituality': 0,
+    'history_civilization': 0,
+    'science_evolution': 0,
+    'other': 0,
+}
+
+# Clusters where 8–12h books still get a +1 length bonus.
+# `calibrate` adjusts these based on your completion patterns.
+HIGH_AFFINITY_CLUSTERS: set[str] = set()
+
+# Load LLM classifications cache if present. Each ASIN → cluster slug.
+try:
+    CLASSIFICATIONS = json.loads((ROOT / 'classifications.json').read_text())
+except (FileNotFoundError, json.JSONDecodeError):
+    CLASSIFICATIONS = {}
+
+# Conservative regex fallback for books not yet LLM-classified.
+# Order matters: first match wins. Rules are intentionally narrow to avoid
+# the "first-match-wins" problems that come with broad keyword sets.
+CLUSTER_RULES = [
+    ('software_engineering', r'\b(software engineer|software architect|kubernetes|devops|microservice|programming & software development|computer science)\b', +1),
+    ('psychology_health', r'\b(trauma|nervous system|somatic|polyvagal|body keeps|vagus|cptsd|self-compassion|psychotherapy|post-traumatic stress disorder|anxiety disorders)\b', +1),
+    ('habits_productivity', r'\b(atomic habit|deep work|self-discipline|ultralearn|motivation & self-improvement)\b', +1),
+    ('leadership_influence', r'\b(persuasion|negotiation|seduction|machiavelli|laws of power|culture map|culture code)\b', +1),
+    ('ai_society', r'\b(artificial intelligence|alignment problem|superintelligen|co-intelligence|human compatible)\b', +1),
+    ('cognition', r'\b(cognitive bias|heuristic|behavioral econom|decision-making & problem solving|social psychology)\b', +1),
+    ('science_evolution', r'\b(evolution|sapiens|primal|hunter-gather|natural selection|biological sciences|anthropology)\b', 0),
+    ('philosophy_spirituality', r'\b(meditation|enlighten|consciousness|awakening|buddhi|mindfulness|religion & spirituality)\b', 0),
+    ('economics_finance', r'\b(investing & trading|personal finance|money & finance|macroeconomic|stock market)\b', 0),
+]
 
 
 def score_item(b):
@@ -142,14 +174,21 @@ def score_item(b):
         score -= 1
         reasons.append('-1 institutional author')
 
-    cluster = None
-    for name, pat, val in CLUSTER_RULES:
-        if re.search(pat, blob, re.I):
-            score += val
-            cluster = name
-            if val:
-                reasons.append(f'{"+" if val >= 0 else ""}{val} cluster:{name}')
-            break
+    cluster = CLASSIFICATIONS.get(b.get('asin'))
+    if cluster:
+        val = CLUSTER_VALUES.get(cluster, 0)
+        score += val
+        if val:
+            reasons.append(f'{"+" if val >= 0 else ""}{val} cluster:{cluster}')
+    else:
+        # Fallback: legacy regex routing for books not yet LLM-classified.
+        for name, pat, val in CLUSTER_RULES:
+            if re.search(pat, blob, re.I):
+                score += val
+                cluster = name
+                if val:
+                    reasons.append(f'{"+" if val >= 0 else ""}{val} cluster:{name}')
+                break
 
     for pat, val, reason in ANTI_PATTERNS:
         if re.search(pat, title) or re.search(pat, author):
@@ -164,7 +203,7 @@ def score_item(b):
         elif 3 <= h < 8:
             score += 2
             reasons.append(f'+2 length {h:.1f}h sweet spot')
-        elif 8 <= h < 12 and cluster in ('software_craft', 'trauma', 'habits', 'power'):
+        elif 8 <= h < 12 and cluster in HIGH_AFFINITY_CLUSTERS:
             score += 1
             reasons.append(f'+1 length {h:.1f}h ok for cluster')
         elif h >= 15:
@@ -179,7 +218,7 @@ def score_item(b):
             else:
                 score -= 1
                 reasons.append(f'-1 length {h:.1f}h above abandon-cliff')
-        elif 12 <= h < 15 and cluster not in ('software_craft', 'trauma', 'habits', 'power'):
+        elif 12 <= h < 15 and cluster not in HIGH_AFFINITY_CLUSTERS:
             score -= 1
             reasons.append(f'-1 length {h:.1f}h long without high-affinity cluster')
 

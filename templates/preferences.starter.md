@@ -1,6 +1,6 @@
 # Preferences — your personal Audible rubric
 
-> **Status: starter (uncalibrated).** This file ships as a generic template. Run `/audible-second-brain:calibrate` once you have ~20 finished books to derive a personalized rubric from your own completion patterns. Until then, the scorer will route on length + cluster + anti-patterns alone, which is directionally useful but not specific to your taste.
+> **Status: starter (uncalibrated).** This file ships as a generic template. Run `/audible-second-brain:calibrate` once you have ~20 finished books to derive a personalized rubric from your own completion patterns. Until then, the scorer routes on cluster + length alone, which is directionally useful but not specific to your taste.
 
 ---
 
@@ -30,25 +30,29 @@ Default rubric (overridden by `calibrate` once it sees your abandon cliff):
 |---|---|---|
 | 1–3h | +1 | very short, easy to finish |
 | 3–8h | +2 | sweet spot for most readers |
-| 8–12h | +1 | OK for high-affinity clusters (software_craft, trauma, habits, power) |
+| 8–12h | +1 | OK for high-affinity clusters (set in `_score.py`) |
 | 12–15h | -1 | long without strong cluster signal |
 | 15h+ | -1 | likely-to-abandon (-2 if reference-shaped: multi-author, "Guide" / "Principles" in title) |
 
-## 5. Cluster weights
+## 5. Cluster taxonomy
 
-Default cluster routing (regex in `_score.py` `CLUSTER_RULES`). `calibrate` rebalances these `+2 / +1 / 0` values based on which clusters you actually finish.
+The starter taxonomy (defined in `_classify.py`) covers common non-fiction. Each book is routed to one cluster by Claude Haiku via the `classify` skill.
 
 | Cluster | Default weight | Description |
 |---|---|---|
-| software_craft | +2 | Engineering, coding, architecture, devops |
-| trauma | +2 | Somatic / nervous-system / mental-health work |
-| habits | +2 | Productivity, focus, behavior change |
-| power | +2 | Influence, persuasion, negotiation, strategy |
-| ai_socio | +1 | AI as a societal / philosophical force |
-| cognition | +1 | Decision-making, biases, behavioral economics |
-| evolution | 0 | Genes, anthropology, deep human history |
-| spirituality | 0 | Meditation, consciousness, presence |
-| investing | 0 | Personal finance, markets, money |
+| software_engineering | +1 | Programming, architecture, infra, dev culture |
+| ai_society | +1 | AI as societal force — alignment, policy, critique |
+| cognition | +1 | Decision-making, biases, behavioral econ, mental models |
+| psychology_health | +1 | Trauma, somatic, mental health, therapy |
+| habits_productivity | +1 | Habits, focus, routines, behavior change |
+| leadership_influence | +1 | Influence, persuasion, negotiation, organizational power |
+| economics_finance | 0 | Personal finance, investing, markets, macro |
+| philosophy_spirituality | 0 | Meditation, consciousness, religion, ethics |
+| history_civilization | 0 | Big history, anthropology, sociology |
+| science_evolution | 0 | Genes, biology, neuroscience, natural sciences |
+| other | 0 | Fiction, language learning, fits no cluster |
+
+`calibrate` re-balances these weights based on which clusters you actually finish. To customize the taxonomy itself (add a cluster, rename, change scope), edit `_classify.py`'s `CLUSTERS` dict and re-run with `python3 _classify.py --force`.
 
 ## 6. Category thresholds
 
@@ -67,7 +71,7 @@ Wishlist items:
 
 Add titles here for hard outcomes that the heuristics can't capture:
 
-- **EXPLICIT_PASS**: titles you never want resurfaced regardless of score (e.g. classics you've decided are not for you).
+- **EXPLICIT_PASS**: titles you never want resurfaced regardless of score.
 - **PROMOTE_LIBRARY**: library titles you want surfaced as KEEP regardless of score.
 - **PROMOTE_WISHLIST**: wishlist titles you want surfaced as KEEP regardless of score.
 

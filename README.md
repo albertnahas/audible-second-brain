@@ -12,7 +12,8 @@ This is **promptware** — most of the value is in the prompts (skills) and the 
 | Skill | What it does | When you'd use it |
 |---|---|---|
 | `bootstrap` | Installs `audible-cli`, walks OTP login, scaffolds scorer + dashboard from generic templates | First time, or in a fresh workspace |
-| `sync` | Re-exports library + wishlist, regenerates scored data, surfaces deltas | After buying / finishing books, or weekly |
+| `sync` | Re-exports library + wishlist, classifies new books, regenerates scored data, surfaces deltas | After buying / finishing books, or weekly |
+| `classify` | Routes each book into a topic cluster using Claude Haiku via the headless CLI; caches results by ASIN | After bootstrap, after editing the cluster taxonomy, or to fix miscategorizations |
 | `recommend` | Proposes new candidates aligned with your rubric | "What should I read next?" |
 | `calibrate` | Re-derives HIGH_TRUST authors, anti-patterns, length cliffs, cluster weights from your own completion data | Once you have ≥ 20 finished books, or after a year of new data |
 | `triage` | Walks you through PASS / LATER / KEEP decisions, persists to dashboard + audit log | "Help me clean up my list" |
@@ -40,7 +41,7 @@ The skill takes it from there.
 Every owned and wished book is scored on four axes:
 
 1. **Author trust** — books from authors you reliably finish get a positive score; authors whose long-form works you've never opened get a negative score.
-2. **Cluster fit** — books are routed to a topic cluster (engineering, behavior change, decision-making, etc.) by matching title, author, subtitle, and Audible genre tags. Each cluster has a weight reflecting how well that topic lands for you.
+2. **Cluster fit** — books are routed to a topic cluster by Claude Haiku (via the headless `claude` CLI), based on title + subtitle + author + Audible genres read together. Each cluster has a weight reflecting how well that topic lands for you. Falls back to a conservative regex if no LLM classification exists yet.
 3. **Length fit** — your personal "abandon cliff" (the runtime above which completion rates collapse) sets a soft penalty on long books unless they're in a high-affinity cluster.
 4. **Anti-patterns** — formats or publishers where you have a track record of buying-but-not-finishing get a penalty (e.g., publisher series you've collected but never opened).
 
@@ -67,6 +68,7 @@ audible-second-brain/
 ├── skills/
 │   ├── bootstrap/SKILL.md
 │   ├── sync/SKILL.md
+│   ├── classify/SKILL.md
 │   ├── recommend/SKILL.md
 │   ├── calibrate/SKILL.md
 │   └── triage/SKILL.md
@@ -79,6 +81,7 @@ audible-second-brain/
 │   └── audible-sync-cli       # cron-friendly headless sync
 ├── templates/
 │   ├── _score.starter.py
+│   ├── _classify.starter.py
 │   ├── preferences.starter.md
 │   ├── CLAUDE.template.md
 │   ├── .gitignore.template
@@ -104,7 +107,7 @@ audible-second-brain/
 
 - Python 3.9+
 - [`audible-cli`](https://github.com/mkb79/audible-cli) ≥ 0.3 (the bootstrap skill installs it via `pipx`)
-- Claude Code 2.x or newer
+- Claude Code 2.x or newer (the `classify` skill uses the bundled `claude` CLI in headless mode)
 
 ## Headless / cron usage
 

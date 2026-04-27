@@ -19,6 +19,9 @@ audible library export -f csv
 audible wishlist export -f json
 audible wishlist export -f csv
 
+if [ -f _classify.py ] && command -v claude >/dev/null 2>&1; then
+  python3 _classify.py || echo "  (classifier failed — continuing with regex fallback)" >&2
+fi
 if [ -f _score.py ]; then
   python3 _score.py
 fi

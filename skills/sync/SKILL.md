@@ -23,19 +23,25 @@ This skill is the canonical refresh path. Run it after the user finishes a book,
    ```
    Run from the working directory; all four commands write to `./` by default. Do **not** pass `-o` to `audible wishlist export` in v0.3.3.
 
-2. **Regenerate scored data**
+2. **Classify any newly added books** (incremental — only books not in `classifications.json`)
+   ```bash
+   python3 _classify.py
+   ```
+   Skips entirely when nothing new. Cheap by design (~$0.0001 per new book).
+
+3. **Regenerate scored data**
    ```bash
    python3 _score.py
    ```
-   Outputs `library.scored.json` and `wishlist.scored.json` (with `score`, `reasons`, `cluster`, `category` per record).
+   Outputs `library.scored.json` and `wishlist.scored.json` (with `score`, `reasons`, `cluster`, `category` per record). Uses the LLM cluster from step 2 when available, falls back to regex routing otherwise.
 
-3. **Regenerate human-readable markdown**
+4. **Regenerate human-readable markdown**
    ```bash
    python3 scripts/regenerate-md.py
    ```
    Outputs `library.md` (grouped by listening status) and `wishlist.md` (sorted by date added).
 
-4. **Compute and report the delta**
+5. **Compute and report the delta**
    - Compare `library.scored.json` against the prior `.audible-snapshot.json`.
    - Report to the user:
      - New titles added (appeared since last sync)
@@ -43,10 +49,10 @@ This skill is the canonical refresh path. Run it after the user finishes a book,
      - Titles whose `percent_complete` jumped > 10%
      - Wishlist additions / removals
 
-5. **Update the freshness marker**
+6. **Update the freshness marker**
    - Overwrite `.audible-snapshot.json`: `{ "last_sync": "<ISO timestamp>", "books_owned": <count>, "books_finished": <count>, "calibrated": <preserve previous value> }`.
 
-6. **Surface what changed in plain language**
+7. **Surface what changed in plain language**
    - Example: "Synced 219 → 221 titles. You finished *Atomic Habits* (was 67% → done). Two new wishlist additions: *Tidy First?* by Kent Beck, *Outlive* by Peter Attia."
    - If the user has now crossed the 20-finished threshold for the first time, suggest running `/audible-second-brain:calibrate`.
 

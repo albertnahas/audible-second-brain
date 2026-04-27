@@ -1,7 +1,7 @@
 {
   "name": "audible-second-brain",
   "description": "Personal Audible library second-brain. Triage your library + wishlist with an evidence-based scorer, an interactive dashboard, and a heuristic rubric that calibrates to your own completion patterns over time.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "Albert Nahas",
     "url": "https://github.com/albertnahas"

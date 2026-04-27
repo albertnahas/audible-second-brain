@@ -60,7 +60,35 @@ See `architecture.md` § "Why a static-HTML dashboard".
 
 **Tradeoff**: Some fields that the scraper could surface (publisher_summary, hasReview, hasPDF, availability) are not in the audible-cli export. We've chosen to live without them rather than maintain two ingestion paths.
 
-## DD-008 — Plugin namespace is verbose by design
+## DD-008 — LLM classification supersedes regex cluster routing
+
+**Context**: v0.1.0 routed books to clusters via title + author + genre regex. Real-world testing showed two systemic failure modes: (a) Audible's umbrella genre tags ("Management & Leadership", "Psychology & Mental Health") sit on books across many topics and over-trigger; (b) generic English words ("strategy", "thinking", "power") match titles outside their intended cluster. In a 219-book library, only 3 of 14 books in the `power` cluster were actually about power dynamics — the rest were investing books, language-learning courses, and consciousness titles.
+
+**Decision**: Add a dedicated `classify` skill that calls Claude Haiku via the headless `claude` CLI to assign a cluster per book. Cache results by ASIN in `classifications.json`. The scorer prefers the cached classification; the regex stays as a fallback for books not yet classified.
+
+**Why**:
+- The signal is in the *combination* of title + subtitle + author + genres, which a small LLM weighs naturally but no regex can.
+- ASIN-keyed cache makes repeated runs effectively free — only new books re-classify.
+- Headless `claude` CLI uses the user's existing Max plan; no API key plumbing for users who already have Claude Code.
+- Falling back to regex means the plugin still works (with reduced accuracy) if `claude` is unavailable.
+
+**Tradeoffs**:
+- Adds a runtime dependency on the `claude` CLI (acceptable since this is a Claude Code plugin).
+- Cluster taxonomy is now defined in one place (`_classify.py`'s `CLUSTERS` dict) rather than spread across regex rules. Customizing the taxonomy requires editing a Python dict and re-running with `--force`.
+- A library of ~300 books costs ~$0.03 in Haiku tokens for a full classification.
+
+**Renamed clusters** (more semantically coherent than the v0.1.0 set):
+- `software_craft` → `software_engineering`
+- `ai_socio` → `ai_society`
+- `trauma` → `psychology_health`
+- `habits` → `habits_productivity`
+- `power` → `leadership_influence`
+- `investing` → `economics_finance`
+- `spirituality` → `philosophy_spirituality`
+- `evolution` → `science_evolution`
+- New: `history_civilization`
+
+## DD-009 — Plugin namespace is verbose by design
 
 **Context**: Skill commands are namespaced as `/audible-second-brain:bootstrap`, which is a lot to type.
 

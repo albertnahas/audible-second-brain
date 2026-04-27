@@ -211,7 +211,12 @@ function renderLibrary() {
   const sorted = applySort(items, 'lib');
   const tbody = document.getElementById('lib-tbody');
   tbody.replaceChildren(...sorted.map(b => makeRow(b, 'lib')));
-  setText(document.getElementById('lib-count'), `${sorted.length} of ${LIB.length} shown`);
+  const totalMin = sorted.reduce((s, b) => s + (b.lengthMin || 0), 0);
+  const remainingMin = sorted.reduce((s, b) => s + bookRemainingMin(b), 0);
+  const summary = totalMin > 0
+    ? `${sorted.length} of ${LIB.length} shown · ${fmtHours(totalMin)}h total · ${fmtHours(remainingMin)}h remaining`
+    : `${sorted.length} of ${LIB.length} shown`;
+  setText(document.getElementById('lib-count'), summary);
   updateSortArrows('lib-table', STATE.sort.lib);
 }
 function renderWishlist() {
@@ -219,7 +224,11 @@ function renderWishlist() {
   const sorted = applySort(items, 'wl');
   const tbody = document.getElementById('wl-tbody');
   tbody.replaceChildren(...sorted.map(b => makeRow(b, 'wl')));
-  setText(document.getElementById('wl-count'), `${sorted.length} of ${WL.length} shown`);
+  const totalMin = sorted.reduce((s, b) => s + (b.lengthMin || 0), 0);
+  const summary = totalMin > 0
+    ? `${sorted.length} of ${WL.length} shown · ${fmtHours(totalMin)}h total`
+    : `${sorted.length} of ${WL.length} shown`;
+  setText(document.getElementById('wl-count'), summary);
   updateSortArrows('wl-table', STATE.sort.wl);
 }
 

@@ -4,6 +4,10 @@
 library.scored.json
 wishlist.scored.json
 recommendations.cache.json
+# classifications.json IS worth committing — it's expensive to regenerate and
+# represents real LLM work. Comment the next line out if you'd rather treat it
+# as derived data.
+# classifications.json
 .playwright-mcp/
 dashboard-*.png
 __pycache__/

@@ -59,6 +59,7 @@ The user is told upfront: **the rubric is generic**. To personalize it, they run
 5. **Scaffold from templates**
    - Copy `${CLAUDE_PLUGIN_ROOT}/templates/preferences.starter.md` → `./preferences.md`
    - Copy `${CLAUDE_PLUGIN_ROOT}/templates/_score.starter.py` → `./_score.py`
+   - Copy `${CLAUDE_PLUGIN_ROOT}/templates/_classify.starter.py` → `./_classify.py`
    - Copy `${CLAUDE_PLUGIN_ROOT}/templates/scripts/regenerate-md.py` → `./scripts/regenerate-md.py` (mkdir scripts first)
    - Copy `${CLAUDE_PLUGIN_ROOT}/templates/dashboard/dashboard.html` → `./dashboard.html`
    - Copy `${CLAUDE_PLUGIN_ROOT}/templates/dashboard/dashboard.js` → `./dashboard.js`
@@ -66,8 +67,9 @@ The user is told upfront: **the rubric is generic**. To personalize it, they run
    - Copy `${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE.template.md` → `./CLAUDE.md`
    - Copy `${CLAUDE_PLUGIN_ROOT}/templates/.gitignore.template` → `./.gitignore`
 
-6. **First scoring + dashboard**
-   - Run: `python3 _score.py` to produce `library.scored.json` + `wishlist.scored.json`.
+6. **First classification + scoring + dashboard**
+   - Run: `python3 _classify.py` to LLM-classify every book into a topic cluster (writes `classifications.json`). Cost ~$0.03 for a 300-book library, ~5 min runtime via the headless `claude` CLI. Skippable if the user prefers regex-only routing — tell them they can run `/audible-second-brain:classify` later.
+   - Run: `python3 _score.py` to produce `library.scored.json` + `wishlist.scored.json` (uses LLM clusters if available, falls back to regex).
    - Run: `python3 scripts/regenerate-md.py` to produce `library.md` + `wishlist.md`.
    - Tell the user: "Open the dashboard with `./serve.sh`."
 
