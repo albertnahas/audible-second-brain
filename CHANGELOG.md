@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `Unfinished` status filter on the library tab (combines `In progress` + `Not started`). Selected by default — most users open the library to triage what's still pending, not browse what's done.
+- The status select now syncs its displayed value from `STATE.filters` on init, so future default-filter changes carry through cleanly.
+
 ## [0.2.0] — 2026-04-27
 
 ### Added

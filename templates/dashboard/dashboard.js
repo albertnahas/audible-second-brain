@@ -1,7 +1,7 @@
 const STATE = {
   decisions: JSON.parse(localStorage.getItem('books-decisions-v1') || '{}'),
   recDecisions: JSON.parse(localStorage.getItem('books-rec-decisions-v1') || '{}'),
-  filters: { lib: { search: '', status: '', cluster: '', availability: '', cat: '' },
+  filters: { lib: { search: '', status: 'Unfinished', cluster: '', availability: '', cat: '' },
              wl:  { search: '', cluster: '', length: '', cat: '' },
              recs: { cluster: '', cat: '', hideDecided: true } },
   sort: { lib: { key: 'score', dir: 'desc' }, wl: { key: 'score', dir: 'desc' } },
@@ -171,7 +171,9 @@ function applyFilters(items, src) {
       const blob = `${b.title||''} ${b.author||''} ${b.description||''} ${b.subtitle||''}`.toLowerCase();
       if (!blob.includes(f.search.toLowerCase())) return false;
     }
-    if (f.status && b.listeningStatus !== f.status) return false;
+    if (f.status === 'Unfinished') {
+      if (b.listeningStatus === 'Finished') return false;
+    } else if (f.status && b.listeningStatus !== f.status) return false;
     if (f.cluster && b.cluster !== f.cluster) return false;
     if (f.availability && b.availability !== f.availability) return false;
     if (f.cat && effectiveCat(b) !== f.cat) return false;
@@ -879,8 +881,12 @@ document.querySelectorAll('nav button').forEach(btn => btn.addEventListener('cli
 }));
 
 const wireFilter = (id, panel, key) => {
-  document.getElementById(id).addEventListener('input', () => {
-    STATE.filters[panel][key] = document.getElementById(id).value;
+  const el = document.getElementById(id);
+  // Sync the control's displayed value from STATE on init so defaults stick.
+  const initial = STATE.filters[panel][key];
+  if (initial !== undefined && initial !== '') el.value = initial;
+  el.addEventListener('input', () => {
+    STATE.filters[panel][key] = el.value;
     panel === 'lib' ? renderLibrary() : renderWishlist();
   });
 };
