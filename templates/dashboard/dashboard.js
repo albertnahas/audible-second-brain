@@ -223,6 +223,32 @@ function renderWishlist() {
   updateSortArrows('wl-table', STATE.sort.wl);
 }
 
+function bookListenedMin(b) {
+  // Use percent_complete directly — it tracks actual playback position, which
+  // matches Audible's "listening time" stat. The is_finished flag is a separate
+  // user-facing marker and is unreliable for hours math: many books are flagged
+  // finished with percent_complete = 0 (listened pre-tracking, or never re-played
+  // on this device) and others sit at 99% because the end credits got skipped.
+  const total = b.lengthMin || 0;
+  if (!total) return 0;
+  const pc = typeof b.percent_complete === 'number' ? b.percent_complete : 0;
+  return Math.round(total * pc / 100);
+}
+
+function bookRemainingMin(b) {
+  // Finished books contribute 0 to backlog regardless of percent_complete:
+  // the user has explicitly moved on, even if Audible's playback position
+  // didn't reach 100%.
+  if (b.listeningStatus === 'Finished') return 0;
+  const total = b.lengthMin || 0;
+  return Math.max(0, total - bookListenedMin(b));
+}
+
+function fmtHours(min) {
+  const h = Math.round(min / 60);
+  return h.toLocaleString();
+}
+
 function renderOverview() {
   const lib = LIB;
   const counts = {
@@ -240,23 +266,38 @@ function renderOverview() {
   const keepWl = WL.filter(b => effectiveCat(b) === 'KEEP').length;
   const decisionsCount = Object.keys(STATE.decisions).length;
 
-  const kpis = [
+  const totalMin = lib.reduce((s, b) => s + (b.lengthMin || 0), 0);
+  const listenedMin = lib.reduce((s, b) => s + bookListenedMin(b), 0);
+  const remainingMin = lib.reduce((s, b) => s + bookRemainingMin(b), 0);
+  const wlMin = WL.reduce((s, b) => s + (b.lengthMin || 0), 0);
+  const yearsAtOneHourPerDay = remainingMin / 60 / 365;
+
+  const primaryKpis = [
     { label: 'Library', value: lib.length, sub: `${counts.unav ? counts.unav + ' unavailable' : 'all available'}` },
     { label: 'Finished', value: counts.fin, sub: `${Math.round(counts.fin*100/lib.length)}% of total` },
+    { label: 'Hours listened', value: `${fmtHours(listenedMin)}h`, sub: `${Math.round(listenedMin*100/Math.max(totalMin,1))}% of library` },
+    { label: 'Library hours', value: `${fmtHours(totalMin)}h`, sub: `avg ${fmtHours(totalMin/Math.max(lib.length,1))}h per title` },
+    { label: 'Backlog', value: `${fmtHours(remainingMin)}h`, sub: `${yearsAtOneHourPerDay.toFixed(1)} yrs at 1h/day` },
+    { label: 'Wishlist', value: WL.length, sub: `${fmtHours(wlMin)}h if you bought all` },
+  ];
+  const secondaryKpis = [
     { label: 'In progress', value: counts.inProg, sub: 'open threads' },
     { label: 'Not started', value: counts.notStarted, sub: 'shelved' },
-    { label: 'Wishlist', value: WL.length, sub: 'candidates' },
     { label: 'Pass · Cut', value: passLib + cutWl, sub: `lib ${passLib} · wl ${cutWl}` },
     { label: 'Later · Maybe', value: laterLib + maybeWl, sub: `lib ${laterLib} · wl ${maybeWl}` },
     { label: 'Keep', value: keepLib + keepWl, sub: `lib ${keepLib} · wl ${keepWl}` },
     { label: 'Decisions', value: decisionsCount, sub: decisionsCount ? 'override saved' : 'awaiting' },
   ];
-  const grid = document.getElementById('kpi-grid');
-  grid.replaceChildren(...kpis.map(k => makeEl('div', { class: 'kpi' },
-    makeEl('div', { class: 'label' }, k.label),
-    makeEl('div', { class: 'value' }, String(k.value)),
-    makeEl('div', { class: 'sub' }, k.sub)
-  )));
+  const renderKpis = (id, items, baseDelay = 0) => {
+    document.getElementById(id).replaceChildren(...items.map((k, i) => makeEl('div',
+      { class: 'kpi', style: `--i:${baseDelay + i}` },
+      makeEl('div', { class: 'label' }, k.label),
+      makeEl('div', { class: 'value' }, String(k.value)),
+      makeEl('div', { class: 'sub' }, k.sub)
+    )));
+  };
+  renderKpis('kpi-grid', primaryKpis, 0);
+  renderKpis('kpi-grid-secondary', secondaryKpis, primaryKpis.length);
   drawCharts();
   drawTopKeep();
 }
@@ -350,6 +391,52 @@ function drawCharts() {
       borderRadius: 2
     }] },
     options: { ...baseOpts, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => `score ${items[0].label}` } } } }
+  });
+
+  // Hours by cluster — stacked listened vs remaining, sorted by total desc.
+  // "Remaining" excludes finished books (the user has moved on regardless of pct).
+  const hoursByCluster = {};
+  LIB.forEach(b => {
+    const c = b.cluster || 'other';
+    if (!hoursByCluster[c]) hoursByCluster[c] = { listened: 0, remaining: 0 };
+    hoursByCluster[c].listened += bookListenedMin(b);
+    hoursByCluster[c].remaining += bookRemainingMin(b);
+  });
+  const hoursEntries = Object.entries(hoursByCluster)
+    .map(([k, v]) => [k, v, v.listened + v.remaining])
+    .filter(([, , total]) => total > 0)
+    .sort((a, b) => b[2] - a[2]);
+  charts.hoursCluster = new Chart(document.getElementById('chart-hours-cluster'), {
+    type: 'bar',
+    data: {
+      labels: hoursEntries.map(([c]) => prettyCluster(c)),
+      datasets: [
+        {
+          label: 'Listened',
+          data: hoursEntries.map(([, v]) => +(v.listened / 60).toFixed(1)),
+          backgroundColor: COLORS.sage,
+          borderRadius: 2,
+        },
+        {
+          label: 'Remaining',
+          data: hoursEntries.map(([, v]) => +(v.remaining / 60).toFixed(1)),
+          backgroundColor: COLORS.gold,
+          borderRadius: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: COLORS.ink, font: { family: 'Geist' }, padding: 14, boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.x}h` } },
+      },
+      scales: {
+        x: { stacked: true, beginAtZero: true, ticks: { ...tickStyle, callback: v => `${v}h` }, grid: { color: COLORS.rule } },
+        y: { stacked: true, ticks: tickStyle, grid: { color: 'transparent' } },
+      },
+    },
   });
 }
 

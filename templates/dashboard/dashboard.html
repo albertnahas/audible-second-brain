@@ -138,23 +138,24 @@
     gap: 0;
     border-bottom: 1px solid var(--rule);
     padding: 36px 0;
-    margin-bottom: 48px;
   }
+  .kpi-strip + .kpi-strip { padding-top: 22px; }
+  .kpi-strip:last-of-type { margin-bottom: 48px; }
   .kpi {
     padding: 0 24px;
     border-right: 1px solid var(--rule);
     animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   }
   .kpi:last-child { border-right: 0; }
-  .kpi:nth-child(1) { animation-delay: 0ms; }
-  .kpi:nth-child(2) { animation-delay: 60ms; }
-  .kpi:nth-child(3) { animation-delay: 120ms; }
-  .kpi:nth-child(4) { animation-delay: 180ms; }
-  .kpi:nth-child(5) { animation-delay: 240ms; }
-  .kpi:nth-child(6) { animation-delay: 300ms; }
-  .kpi:nth-child(7) { animation-delay: 360ms; }
-  .kpi:nth-child(8) { animation-delay: 420ms; }
-  .kpi:nth-child(9) { animation-delay: 480ms; }
+  .kpi { animation-delay: calc(var(--i, 0) * 60ms); }
+  .kpi-strip--secondary {
+    border-bottom: 1px solid var(--rule);
+    padding: 22px 0;
+  }
+  .kpi-strip--secondary .kpi { padding: 0 20px; }
+  .kpi-strip--secondary .kpi .label { font-size: 9px; margin-bottom: 8px; }
+  .kpi-strip--secondary .kpi .value { font-size: 26px; }
+  .kpi-strip--secondary .kpi .sub { font-size: 10px; margin-top: 6px; }
   @keyframes rise {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -218,6 +219,8 @@
     color: var(--paper);
   }
   .chart-cell canvas { flex: 1; max-height: 240px; min-height: 200px; }
+  .chart-cell.wide { grid-column: 1 / -1; }
+  .chart-cell.wide canvas { max-height: 360px; min-height: 280px; }
 
   /* Spotlight */
   .spotlight { margin-bottom: 64px; }
@@ -954,11 +957,13 @@
 
 <section id="tab-overview">
   <div class="kpi-strip" id="kpi-grid"></div>
+  <div class="kpi-strip kpi-strip--secondary" id="kpi-grid-secondary"></div>
   <div class="charts-grid">
     <div class="chart-cell"><h3>by listening status</h3><canvas id="chart-status"></canvas></div>
     <div class="chart-cell"><h3>length distribution</h3><canvas id="chart-length"></canvas></div>
     <div class="chart-cell"><h3>library by cluster</h3><canvas id="chart-cluster"></canvas></div>
     <div class="chart-cell"><h3>wishlist score histogram</h3><canvas id="chart-wishlist-score"></canvas></div>
+    <div class="chart-cell wide"><h3>hours by cluster — listened vs remaining</h3><canvas id="chart-hours-cluster"></canvas></div>
   </div>
   <div class="spotlight">
     <div class="section-head">
