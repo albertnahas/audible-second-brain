@@ -37,11 +37,11 @@ The starter `preferences.md` shipped by `bootstrap` is generic. This skill repla
 - These get score penalty `-2 reason: "<author> long unread"`.
 
 ### ANTI_PATTERNS
-- Detect formats / publishers where the user has bought ≥ 3 titles AND finished none. Common shapes:
-  - HBR Guides (publisher = "Harvard Business Review")
-  - Pop-sci humor (Munroe, hitchhiker, parody)
-  - Hands-on technical implementation books (when user is more sociology-leaning)
-- Each becomes a regex anti-pattern with the rationale appended (e.g., `# 5 owned, 0 started`).
+- Detect formats / publishers where the user has bought ≥ 3 titles AND finished none. Common shapes to look for:
+  - Branded "guide" series from a single institutional publisher
+  - Genre patterns the user owns repeatedly but never opens (e.g., parody, humor, fiction-shaped non-fiction)
+  - Hands-on / implementation books when the user's reading pattern leans conceptual (or vice versa)
+- Each becomes a regex anti-pattern with the rationale appended (e.g., `# N owned, 0 started`).
 
 ### Length preferences
 - Compute completion ratio per length band: <3h, 3–5h, 5–9h, 9–14h, 14h+.
@@ -57,12 +57,12 @@ The starter `preferences.md` shipped by `bootstrap` is generic. This skill repla
 2. **Compute the four sets** above (HIGH_TRUST, SCHOOL, UNTOUCHED_MAGNUM, ANTI_PATTERNS).
 3. **Compute the length-band completion ratios** and identify the abandon cliff.
 4. **Compute the cluster weights** from finished titles.
-5. **Diff against current `preferences.md` + `_score.py`** — show the user a concise summary of what would change. Example:
+5. **Diff against current `preferences.md` + `_score.py`** — show the user a concise summary of what would change. Example shape (placeholders, not real values):
    ```
-   HIGH_TRUST adds: Robert M. Sapolsky, Malcolm Gladwell, James Clear
-   HIGH_TRUST removes: Mark Manson (now 1 of 3 finished — borderline)
-   ANTI_PATTERN added: HBR Guide format (5 owned, 0 finished)
-   Cluster weight changes: software_craft +2 → +1 (you've cooled on it)
+   HIGH_TRUST adds: <Author A>, <Author B>, <Author C>
+   HIGH_TRUST removes: <Author D> (now 1 of 3 finished — borderline)
+   ANTI_PATTERN added: <publisher / format pattern> (N owned, 0 finished)
+   Cluster weight changes: <cluster X> +2 → +1 (you've cooled on it)
    Abandon cliff: 14h → 12h (you abandon earlier than the default rubric assumes)
    ```
 6. **Ask for confirmation**, then write the new values to `preferences.md` AND patch `_score.py`'s constants.
@@ -77,6 +77,6 @@ The starter `preferences.md` shipped by `bootstrap` is generic. This skill repla
 
 ## Reporting
 
-Output a short summary the user can save:
+Output a short summary the user can save (numbers / names below are illustrative):
 
-> Calibrated 2026-04-27. Library: 219 owned, 83 finished (38%). Top clusters: habits (12), evolution (9), trauma (8). HIGH_TRUST: 11 authors. ANTI_PATTERNS: 3 detected. Abandon cliff at 12h. Run `/audible-second-brain:sync` to apply scoring.
+> Calibrated `<date>`. Library: `<N>` owned, `<M>` finished (`<X>`%). Top clusters: `<cluster1>` (`<a>`), `<cluster2>` (`<b>`), `<cluster3>` (`<c>`). HIGH_TRUST: `<K>` authors. ANTI_PATTERNS: `<P>` detected. Abandon cliff at `<H>`h. Run `/audible-second-brain:sync` to apply scoring.

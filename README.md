@@ -34,14 +34,24 @@ The skill takes it from there.
 
 ## How the rubric works
 
-The scorer routes every owned / wished book into one of nine clusters (`software_craft`, `trauma`, `habits`, `power`, `ai_socio`, `cognition`, `evolution`, `spirituality`, `investing`) using a regex against title + author + Audible genres. Each book gets a score from author trust + cluster fit + length + anti-patterns, and a category (PASS / LATER / KEEP for library, CUT / MAYBE / KEEP for wishlist).
+Every owned and wished book is scored on four axes:
 
-The starter rubric is **generic**. The `calibrate` skill replaces:
+1. **Author trust** — books from authors you reliably finish get a positive score; authors whose long-form works you've never opened get a negative score.
+2. **Cluster fit** — books are routed to a topic cluster (engineering, behavior change, decision-making, etc.) by matching title, author, subtitle, and Audible genre tags. Each cluster has a weight reflecting how well that topic lands for you.
+3. **Length fit** — your personal "abandon cliff" (the runtime above which completion rates collapse) sets a soft penalty on long books unless they're in a high-affinity cluster.
+4. **Anti-patterns** — formats or publishers where you have a track record of buying-but-not-finishing get a penalty (e.g., publisher series you've collected but never opened).
 
-- HIGH_TRUST authors → derived from your ≥ 0.6 completion ratio with ≥ 2 books
-- ANTI_PATTERNS → format / publisher patterns where you own ≥ 3 and finished 0
-- Cluster weights → top-3 finished clusters get +2, next 2 get +1
-- Length cliffs → derived from per-band completion ratios
+Each book then gets a category:
+
+- Library items → **PASS** / **LATER** / **KEEP**
+- Wishlist items → **CUT** / **MAYBE** / **KEEP**
+
+The starter rubric ships with generic clusters that cover common non-fiction territory and empty author/anti-pattern lists. The **`calibrate`** skill replaces those defaults with values derived from your own data:
+
+- Trusted authors → those with ≥ 2 finished books and a completion ratio ≥ 0.6
+- Anti-patterns → formats or publishers where you own ≥ 3 books and finished 0
+- Cluster weights → re-balanced so the topics you actually finish get bonus, the ones you don't get neutral
+- Length cliff → derived from your per-runtime-band completion ratios
 
 This means the scorer becomes more accurate over time without you having to think about it.
 

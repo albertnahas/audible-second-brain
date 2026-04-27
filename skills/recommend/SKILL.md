@@ -11,7 +11,7 @@ This skill turns the user's `preferences.md` rubric into outward-facing recommen
 
 - `preferences.md` — user's current rubric (HIGH_TRUST authors, CLUSTER_RULES, ANTI_PATTERNS, length preferences).
 - `library.scored.json` and `wishlist.scored.json` — what the user already owns / wants.
-- Optional: a topic constraint from the user ("more books on negotiation", "anything from Robert Sapolsky's school").
+- Optional: a topic constraint from the user ("more books on negotiation", "anything from authors in the same school as my favorites").
 
 ## Steps
 
@@ -22,7 +22,7 @@ This skill turns the user's `preferences.md` rubric into outward-facing recommen
 2. **Generate candidates**
    - Three sources, in order of trust:
      a. **Adjacent works by HIGH_TRUST authors** — every other audiobook by a HIGH_TRUST author the user does not already own. Use Claude's general knowledge; do not invent titles.
-     b. **Co-citation expansion** — books cited by / co-shelved with the user's finished titles (think: "if they liked Sapolsky's *Behave*, propose Robert M. Pirsig's *Zen and the Art* — but only if cluster patterns match").
+     b. **Co-citation expansion** — books cited by or commonly co-shelved with the user's finished titles, filtered to those whose cluster matches the user's high-affinity clusters.
      c. **Topic constraint** — if the user gave one, expand within that topic, weighted by cluster preference.
 
 3. **Score each candidate against the rubric**
@@ -42,11 +42,11 @@ This skill turns the user's `preferences.md` rubric into outward-facing recommen
 ## Anti-patterns
 
 - Do not hallucinate titles. If unsure a book exists, say so or skip it.
-- Do not recommend HBR Guides, *What If?*-style pop-sci humor, or other anti-pattern matches without a strong cluster justification — and even then, flag the conflict.
+- Do not recommend titles that match the user's `ANTI_PATTERNS` (formats / publishers they've previously bought without finishing) unless there's a strong cluster justification — and even then, flag the conflict explicitly so the user can decide.
 - Do not exceed 5 recommendations from any single author — the goal is breadth, not deep dive (deep dives are explicit user requests, not recommendations).
 
 ## Variants
 
 - "Recommend something short I can finish this weekend" → filter to 3–5h runtime, score-bonus the candidates that are normally borderline.
-- "Anything new from Daniel Pink?" → bypass scoring, just enumerate; use the rubric only as a tiebreaker.
+- "Anything new from <a HIGH_TRUST author>?" → bypass scoring, just enumerate; use the rubric only as a tiebreaker.
 - "Replace my whole wishlist with better candidates" → score the current wishlist as a baseline, then propose 75 candidates that beat it.

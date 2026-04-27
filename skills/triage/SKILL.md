@@ -30,10 +30,10 @@ The user has too many books. This skill walks them through high-impact decisions
 For each item, present a compact card:
 
 ```
-№ 023 / 087 — The Singularity Is Nearer  +1
-by Ray Kurzweil · 13h 21m · cluster: ai_socio · category: LATER
-Score reasons: -2 long without high-affinity cluster, +1 length 13.4h ok
-Status: Not started · 0% complete
+№ <position> / <total> — <Title>  <score>
+by <Author> · <runtime> · cluster: <cluster> · category: <PASS|LATER|KEEP>
+Score reasons: <list of +/- reasons>
+Status: <Finished|In progress|Not started> · <percent_complete>%
 
 [K]eep · [L]ater · [P]ass · [S]kip · [Q]uit
 ```
