@@ -107,8 +107,7 @@ function makeRow(b, src) {
     tr.appendChild(makeEl('td', { class: 'author' }, b.author || ''));
     const lenTd = makeEl('td', { class: 'length' }, fmtLen(b.lengthMin));
     if (b.remaining) {
-      lenTd.appendChild(document.createTextNode(' · '));
-      lenTd.appendChild(makeEl('span', { style: 'color:var(--amber)' }, `${b.remaining} left`));
+      lenTd.appendChild(makeEl('div', { class: 'length-remaining' }, `${b.remaining} left`));
     }
     tr.appendChild(lenTd);
     const statusTd = makeEl('td', {}, pill(pillClass(b.listeningStatus), b.listeningStatus));
