@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Headless sync wrapper — for cron, CI, or direct invocation outside Claude.
+# Run from the user's audible-second-brain workspace.
+#   $ ./bin/audible-sync-cli           # sync the cwd workspace
+#   $ AUDIBLE_HOME=~/audible ./bin/audible-sync-cli   # sync an explicit dir
+set -euo pipefail
+
+target="${AUDIBLE_HOME:-$PWD}"
+cd "$target" || { echo "no such directory: $target" >&2; exit 1; }
+
+if ! command -v audible >/dev/null 2>&1; then
+  echo "audible-cli not found on PATH — install with: pipx install audible-cli" >&2
+  exit 127
+fi
+
+echo "[$(date -Iseconds)] re-exporting library + wishlist from $target"
+audible library export -f json
+audible library export -f csv
+audible wishlist export -f json
+audible wishlist export -f csv
+
+if [ -f _score.py ]; then
+  python3 _score.py
+fi
+if [ -f scripts/regenerate-md.py ]; then
+  python3 scripts/regenerate-md.py
+fi
+
+owned=$(python3 -c "import json; print(len(json.load(open('library.json'))))" 2>/dev/null || echo 0)
+finished=$(python3 -c "import json; lib=json.load(open('library.json')); print(sum(1 for b in lib if b.get('is_finished')))" 2>/dev/null || echo 0)
+calibrated=$(python3 -c "import json,os; print('true' if os.path.exists('.audible-snapshot.json') and json.load(open('.audible-snapshot.json')).get('calibrated') else 'false')" 2>/dev/null || echo "false")
+
+python3 - <<PY
+import json, datetime as dt
+data = {
+  "last_sync": dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z'),
+  "books_owned": $owned,
+  "books_finished": $finished,
+  "calibrated": "$calibrated" == "true",
+}
+import pathlib
+pathlib.Path('.audible-snapshot.json').write_text(json.dumps(data, indent=2))
+PY
+
+echo "[$(date -Iseconds)] sync complete: ${owned} owned, ${finished} finished"

@@ -1,0 +1,40 @@
+name: Validate plugin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate plugin manifest
+        run: python3 .github/scripts/validate_manifest.py
+
+      - name: Validate skill frontmatter
+        run: python3 .github/scripts/validate_skills.py
+
+      - name: Validate hooks.json
+        run: python3 .github/scripts/validate_hooks.py
+
+      - name: Verify executable bits
+        run: |
+          for f in bin/audible-sync-cli scripts/check-freshness.sh scripts/check-freshness.py; do
+            if [ -f "$f" ] && [ ! -x "$f" ]; then
+              echo "::error::$f is not executable"
+              exit 1
+            fi
+          done
+          echo "Executable bits OK"
+
+      - name: Lint starter scorer compiles
+        run: python3 -m py_compile templates/_score.starter.py

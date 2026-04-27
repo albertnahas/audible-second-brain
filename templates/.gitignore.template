@@ -1,0 +1,10 @@
+.DS_Store
+.audible-snapshot.json
+# Derived from library.json / wishlist.json by `_score.py` — regenerate, don't commit.
+library.scored.json
+wishlist.scored.json
+recommendations.cache.json
+.playwright-mcp/
+dashboard-*.png
+__pycache__/
+*.pyc

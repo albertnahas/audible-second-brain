@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+node_modules/
+.idea/
+.vscode/
+*.swp
+.claude/cache/
+.playwright-mcp/
