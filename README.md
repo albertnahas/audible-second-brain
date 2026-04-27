@@ -1,5 +1,8 @@
 # Audible Second Brain
 
+<img width="1512" height="788" alt="image" src="https://github.com/user-attachments/assets/ea467a6b-ed14-44dc-bcfb-4292edd8d254" />
+
+
 A Claude Code plugin that turns your Audible library into a working second brain: an evidence-based scorer, an interactive triage dashboard, and a heuristic rubric that calibrates to *your own* completion patterns over time.
 
 This is **promptware** — most of the value is in the prompts (skills) and the heuristic rubric. The plugin scaffolds a tiny Python scorer and a vanilla-JS dashboard into your workspace, then orchestrates everything via natural language inside Claude Code.
