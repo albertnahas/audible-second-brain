@@ -76,8 +76,24 @@ The user is told upfront: **the rubric is generic**. To personalize it, they run
 7. **Persist a freshness marker**
    - Write `.audible-snapshot.json`: `{ "last_sync": "<ISO timestamp>", "books_owned": <count>, "books_finished": <count>, "calibrated": false }`. Other skills use this.
 
-8. **Closing nudge**
-   - Tell the user: "Your scorer is using a **generic starter rubric**. Once you have ~20 finished books in your library, run `/audible-second-brain:calibrate` to derive a personalized rubric from your own completion patterns. Until then, expect the scoring to be directionally useful but not fully aligned with your taste."
+8. **Optional: keep the dashboard server alive across reboots (macOS only)**
+   - Ask: "Want me to set up the dashboard server as a launchd agent so `localhost:8888` stays up across logins/reboots? (y/N)"
+   - If yes:
+     - Copy `templates/launchd/com.audible-second-brain.dashboard.plist.template` to `~/Library/LaunchAgents/com.audible-second-brain.dashboard.plist`, substituting:
+       - `__PYTHON3_PATH__` → output of `which python3`
+       - `__WORKSPACE__` → current working directory (the bootstrapped workspace)
+       - `__PORT__` → `8888` (or whatever the user picked)
+       - `__LOGS_DIR__` → `$HOME/.local/share/logs` (mkdir -p first)
+     - Run: `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.audible-second-brain.dashboard.plist`
+     - Verify: `launchctl list | grep com.audible-second-brain` should show the label.
+     - Tell the user: "Dashboard server is now auto-managed — survives reboots, restarts on crash. Visit `http://localhost:8888/dashboard.html` any time."
+   - If no: tell them they can run `./serve.sh` manually each session, or revisit this later by copying the template.
+
+9. **Optional: schedule periodic sync (advanced)**
+   - Mention: a separate launchd schedule can run the sync pipeline daily and feed an Obsidian vault by passing `--out-dir` to `scripts/regenerate-vault-md.py`. This is workspace-specific (vault path varies per user) so it's not bundled here — point users at the README.
+
+10. **Closing nudge**
+    - Tell the user: "Your scorer is using a **generic starter rubric**. Once you have ~20 finished books in your library, run `/audible-second-brain:calibrate` to derive a personalized rubric from your own completion patterns. Until then, expect the scoring to be directionally useful but not fully aligned with your taste."
 
 ## Failure modes
 
